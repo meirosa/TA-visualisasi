@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 
 const mapConfig = {
-  2019: 57,
-  2020: 58,
-  2021: 59,
-  2022: 60,
-  2023: 61,
+  2019: 102,
+  2020: 103,
+  2021: 104,
+  2022: 100,
+  2023: 101,
 } as const;
 
 export default function PetaPage() {
@@ -36,37 +36,37 @@ export default function PetaPage() {
 
   return (
     <AdminLayout>
-      <h2 className="text-2xl font-bold mb-4 text-black">
+      <h2 className="text-2xl font-bold mb-3 text-black">
         Peta Kerentanan Banjir
       </h2>
 
-      <label className="block mb-2 text-lg font-medium text-black">
-        Tahun:
-      </label>
-      <select
-        className="border p-2 rounded-md w-48 bg-white text-black"
-        value={selectedYear}
-        onChange={(e) =>
-          setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
-        }
-      >
-        {Object.keys(mapConfig).map((year) => (
-          <option key={year} value={year} className="text-black">
-            {year}
-          </option>
-        ))}
-      </select>
+      {/* Dropdown Tahun sejajar */}
+      <div className="flex items-center space-x-4">
+        <label className="text-lg font-medium text-black">Tahun:</label>
+        <select
+          className="border p-1 rounded-md bg-white text-black"
+          value={selectedYear}
+          onChange={(e) =>
+            setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
+          }
+        >
+          {Object.keys(mapConfig).map((year) => (
+            <option key={year} value={year} className="text-black">
+              {year}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      {/* Kontainer untuk Peta */}
-      <div className="mt-6 max-h-[80vh] overflow-y-auto pr-2 border p-4 rounded-lg shadow-md bg-white">
+      {/* Tampilan Peta tanpa Bingkai */}
+      <div className="mt-5 w-full h-[357px] overflow-hidden">
         {iframeUrl && (
           <iframe
             src={iframeUrl}
             frameBorder={0}
-            width="100%"
-            height="460"
+            className="w-full h-full"
             allowTransparency
-            className="border rounded-md shadow-md"
+            scrolling="no"
           />
         )}
       </div>

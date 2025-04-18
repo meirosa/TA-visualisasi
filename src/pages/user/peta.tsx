@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
 import UserLayout from "@/components/UserLayout";
+import { useRouter } from "next/router";
 
 const mapConfig = {
-  2019: 57,
-  2020: 58,
-  2021: 59,
-  2022: 60,
-  2023: 61,
+  2019: 102,
+  2020: 103,
+  2021: 104,
+  2022: 100,
+  2023: 101,
 } as const;
 
 export default function PetaUserPage() {
   const [selectedYear, setSelectedYear] =
     useState<keyof typeof mapConfig>(2023);
   const [iframeUrl, setIframeUrl] = useState<string>("");
+  const router = useRouter();
 
   useEffect(() => {
     const fetchIframeUrl = async (year: keyof typeof mapConfig) => {
@@ -36,34 +38,45 @@ export default function PetaUserPage() {
 
   return (
     <UserLayout>
-      <label className="block mb-2 text-lg font-medium">Tahun:</label>
-      <select
-        className="border p-2 rounded-md w-48 bg-white"
-        value={selectedYear}
-        onChange={(e) =>
-          setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
-        }
-      >
-        {Object.keys(mapConfig).map((year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        ))}
-      </select>
-
-      {/* Kontainer untuk Peta */}
-      <div className="mt-6 max-h-[80vh] overflow-y-auto pr-2 border p-4 rounded-lg shadow-md bg-white">
-        {iframeUrl && (
-          <iframe
-            src={iframeUrl}
-            frameBorder={0}
-            width="100%"
-            height="460"
-            allowTransparency
-            className="border rounded-md shadow-md"
-          />
-        )}
+      {/* Tahun dan Dropdown dalam satu baris */}
+      <div className="flex items-center gap-4 mb-4">
+        <span className="text-lg font-medium">Tahun:</span>
+        <select
+          className="border p-2 rounded-md bg-white"
+          value={selectedYear}
+          onChange={(e) =>
+            setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
+          }
+        >
+          {Object.keys(mapConfig).map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {/* Peta langsung ditampilkan tanpa container tambahan */}
+      {iframeUrl ? (
+        <iframe
+          src={iframeUrl}
+          frameBorder={0}
+          width="100%"
+          height="600"
+          allowTransparency
+          className="w-full"
+        />
+      ) : (
+        <p className="text-gray-500 text-center">Memuat peta...</p>
+      )}
+
+      {/* Kembali ke Landing Page */}
+      <button
+        onClick={() => router.push("/")}
+        className="mt-6 text-gray-600 underline text-sm block text-center w-full"
+      >
+        Kembali ke Landing Page
+      </button>
     </UserLayout>
   );
 }

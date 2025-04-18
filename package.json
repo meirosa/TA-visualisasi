@@ -18,7 +18,8 @@
     "next": "14.2.24",
     "react": "^18",
     "react-dom": "^18",
-    "react-rain-animation": "^1.0.4"
+    "react-rain-animation": "^1.0.4",
+    "recharts": "^2.15.1"
   },
   "devDependencies": {
     "@types/axios": "^0.14.4",
@@ -26,6 +27,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/recharts": "^1.8.29",
     "concurrently": "^9.1.2",
     "eslint": "^8",
     "eslint-config-next": "14.2.24",

@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 
 const mapConfig = {
-  2019: 102,
-  2020: 103,
+  2019: 158,
+  2020: 159,
   2021: 104,
   2022: 100,
   2023: 101,
@@ -41,7 +41,7 @@ export default function PetaPage() {
       </h2>
 
       {/* Dropdown Tahun sejajar */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 mb-4">
         <label className="text-lg font-medium text-black">Tahun:</label>
         <select
           className="border p-1 rounded-md bg-white text-black"
@@ -58,17 +58,36 @@ export default function PetaPage() {
         </select>
       </div>
 
-      {/* Tampilan Peta tanpa Bingkai */}
-      <div className="mt-5 w-full h-[357px] overflow-hidden">
-        {iframeUrl && (
-          <iframe
-            src={iframeUrl}
-            frameBorder={0}
-            className="w-full h-full"
-            allowTransparency
-            scrolling="no"
-          />
-        )}
+      {/* Peta dan Legenda dalam 1 baris */}
+      <div className="flex gap-6 items-start">
+        {/* Tampilan Peta */}
+        <div className="w-full h-[357px] overflow-hidden rounded-md shadow-md">
+          {iframeUrl && (
+            <iframe
+              src={iframeUrl}
+              frameBorder={0}
+              className="w-full h-full"
+              allowTransparency
+              scrolling="no"
+            />
+          )}
+        </div>
+
+        {/* Legenda di sebelah kanan */}
+        <div className="bg-white p-4 rounded-md shadow-sm text-black w-48">
+          <h3 className="font-semibold mb-2">Kerentanan</h3>
+          <ul className="space-y-1 text-sm">
+            <li>
+              <span className="font-bold">0</span> = Rendah
+            </li>
+            <li>
+              <span className="font-bold">1</span> = Sedang
+            </li>
+            <li>
+              <span className="font-bold">2</span> = Tinggi
+            </li>
+          </ul>
+        </div>
       </div>
     </AdminLayout>
   );

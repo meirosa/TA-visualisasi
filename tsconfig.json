@@ -14,7 +14,9 @@
     "incremental": true,
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "target": "ES2015", // <-- Tambahkan ini
+    "downlevelIteration": true // <-- Tambahkan ini
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules"]

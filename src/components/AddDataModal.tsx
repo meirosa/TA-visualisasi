@@ -50,10 +50,8 @@ export default function AddDataModal({
   const [filteredKecamatan, setFilteredKecamatan] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // State for debounced input
   const debouncedKecamatan = useDebounce(form.kecamatan, 300);
 
-  // Fetch kecamatan from Supabase
   useEffect(() => {
     const fetchKecamatan = async () => {
       const { data, error } = await supabase.from("kecamatan").select("nama");
@@ -68,7 +66,7 @@ export default function AddDataModal({
 
   useEffect(() => {
     if (editData) {
-      setForm(editData); // Populate form with edit data if any
+      setForm(editData);
     }
   }, [editData]);
 
@@ -97,33 +95,29 @@ export default function AddDataModal({
 
   const handleSave = async () => {
     const newData = { ...form };
-
     try {
       if (editData) {
-        // Update existing data
         const { error } = await supabase
           .from("data")
           .update(newData)
           .eq("id_data", editData.id_data);
         if (error) throw error;
       } else {
-        // Insert new data
         const { error } = await supabase.from("data").insert([newData]);
         if (error) throw error;
       }
-
       onSuccess();
       onClose();
-      alert("Data berhasil disimpan!"); // Show success notification
+      alert("Data berhasil disimpan!");
     } catch (error) {
       console.error("Error saving data:", error);
-      alert("Gagal menyimpan data!"); // Show error notification
+      alert("Gagal menyimpan data!");
     }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-1/3">
+      <div className="bg-white text-black p-6 rounded-lg shadow-lg w-1/3">
         <h2 className="text-2xl font-bold mb-4">
           {editData ? "Edit Data" : "Tambah Data"}
         </h2>
@@ -132,9 +126,9 @@ export default function AddDataModal({
           <input
             name="tahun"
             type="number"
-            value={form.tahun || ""} // Prevent 0 as default value
+            value={form.tahun || ""}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 w-full placeholder:text-gray-500"
           />
           <label>Kecamatan:</label>
           <div className="relative">
@@ -142,10 +136,10 @@ export default function AddDataModal({
               name="kecamatan"
               value={form.kecamatan}
               onChange={handleChange}
-              className="border p-2 w-full"
+              className="border p-2 w-full placeholder:text-gray-500"
             />
             {showSuggestions && (
-              <ul className="absolute left-0 right-0 bg-white border shadow-lg mt-1 max-h-40 overflow-y-auto">
+              <ul className="absolute left-0 right-0 bg-white border shadow-lg mt-1 max-h-40 overflow-y-auto z-10">
                 {filteredKecamatan.map((nama) => (
                   <li
                     key={nama}
@@ -162,44 +156,44 @@ export default function AddDataModal({
           <input
             name="kepadatan_penduduk"
             type="number"
-            value={form.kepadatan_penduduk || ""} // Prevent 0 as default value
+            value={form.kepadatan_penduduk || ""}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 w-full placeholder:text-gray-500"
           />
           <label>Taman & Drainase:</label>
           <input
             name="taman_drainase"
             type="number"
-            value={form.taman_drainase || ""} // Prevent 0 as default value
+            value={form.taman_drainase || ""}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 w-full placeholder:text-gray-500"
           />
           <label>Sejarah Banjir:</label>
           <input
             name="history_banjir"
             type="number"
-            value={form.history_banjir || ""} // Prevent 0 as default value
+            value={form.history_banjir || ""}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 w-full placeholder:text-gray-500"
           />
           <label>Curah Hujan:</label>
           <input
             name="curah_hujan"
             type="number"
-            value={form.curah_hujan || ""} // Prevent 0 as default value
+            value={form.curah_hujan || ""}
             onChange={handleChange}
-            className="border p-2 w-full"
+            className="border p-2 w-full placeholder:text-gray-500"
           />
         </div>
-        <div className="flex justify-end space-x-2 mt-4">
+        <div className="flex justify-end space-x-2 mt-6">
           <button
-            className="bg-gray-500 text-white px-4 py-2"
+            className="bg-gray-300 hover:bg-gray-400 text-black font-semibold px-4 py-2 rounded"
             onClick={onClose}
           >
             Batal
           </button>
           <button
-            className="bg-blue-500 text-white px-4 py-2"
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded"
             onClick={handleSave}
           >
             Simpan

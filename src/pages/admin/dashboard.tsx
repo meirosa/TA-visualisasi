@@ -4,11 +4,13 @@ import DashboardStats from "@/components/DashboardStats";
 export default function Dashboard() {
   return (
     <AdminLayout>
-      <h2 className="text-2xl font-bold">Dashboard</h2>
+      <div className="min-h-screen bg-white text-black p-6">
+        <h2 className="text-2xl font-bold">Dashboard</h2>
 
-      {/* Tambahkan komponen DashboardStats di sini */}
-      <div className="mt-4">
-        <DashboardStats />
+        {/* Tambahkan komponen DashboardStats di sini */}
+        <div className="mt-4">
+          <DashboardStats />
+        </div>
       </div>
     </AdminLayout>
   );

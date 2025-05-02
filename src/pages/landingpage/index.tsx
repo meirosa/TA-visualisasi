@@ -1,232 +1,354 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "@/utils/supabase";
-import { User } from "@supabase/supabase-js";
+import {
+  FaChevronDown,
+  FaMapMarkerAlt,
+  FaBullhorn,
+  FaMap,
+  FaBroadcastTower, // Tambahkan ini
+  FaFileAlt, // Tambahkan ini
+  FaPlug, // Tambahkan ini
+  FaRoute, // Tambahkan ini
+  FaRecycle, // Tambahkan ini
+  FaTools, // Tambahkan ini
+  FaTree, // Tambahkan ini
+  FaWater, // Tambahkan ini
+} from "react-icons/fa";
+
 import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
+  const [mapType, setMapType] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string>("home");
 
   useEffect(() => {
-    setIsClient(true);
     const fetchUser = async () => {
-      setLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data, error } = await supabase
-          .from("users")
-          .select("role")
-          .eq("email", user.email)
-          .single();
-
-        if (!error) {
-          setUser(user);
-          setRole(data?.role || null);
-        } else {
-          console.error("Gagal mendapatkan role:", error);
-        }
-      }
-      setLoading(false);
+      const {} = await supabase.auth.getUser();
     };
-
     fetchUser();
   }, []);
 
-  if (!isClient) return null;
-
   return (
-    <div className="min-h-screen bg-blue-50 relative">
+    <div>
       {/* Navbar */}
-      <nav className="fixed top-0 w-full bg-[#57B4BA] shadow-md py-3 px-6 flex justify-center space-x-6 z-50">
-        {["home", "about", "SOP"].map((id) => (
+      <nav className="fixed top-0 w-full bg-[#57B4BA] shadow-md py-3 px-10 flex justify-between items-center z-50">
+        <div className="flex space-x-8">
+          {["Home", "About", "SOP"].map((text) => (
+            <button
+              key={text}
+              onClick={() => {
+                setActiveSection(text.toLowerCase());
+                setMapType(null);
+                if (text.toLowerCase() === "sop") {
+                  document
+                    .getElementById("sop-content")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  document
+                    .getElementById(text.toLowerCase())
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              className={`${
+                activeSection === text.toLowerCase() ? "bg-[#46969B]" : ""
+              } text-[#F6F0F0] font-semibold text-lg px-4 py-2 rounded-md transition duration-300`}
+            >
+              {text}
+            </button>
+          ))}
+
+          {/* Peta Dropdown */}
+          {/* Dropdown Button */}
+          <div className="relative">
+            <button
+              onClick={() => setMapType(mapType ? null : "dropdown")}
+              className="text-[#F6F0F0] font-semibold text-lg px-4 py-2 rounded-md"
+            >
+              Peta
+              <FaChevronDown className="inline ml-1" />
+            </button>
+
+            {mapType && (
+              <div className="absolute top-12 left-0 w-48 bg-white shadow-lg z-10">
+                <button
+                  onClick={() => {
+                    router.push("/user/peta"); // 👈 arahkan ke peta.tsx
+                    setMapType(null);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Peta Kerentanan
+                </button>
+
+                <button
+                  onClick={() => {
+                    router.push("/user/damkar"); // 👈 arahkan ke damkar.tsx
+                    setMapType(null);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                >
+                  Peta Damkar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Login Admin */}
+        <div>
           <button
-            key={id}
-            onClick={() =>
-              document
-                .getElementById(id)
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-            className="text-[#F6F0F0] font-semibold relative group px-3 py-1"
-            aria-label={`Scroll ke ${id}`}
+            onClick={() => router.push("/admin/login")}
+            className="bg-[#3A8F7A] text-white font-semibold text-lg px-6 py-2 rounded-md hover:bg-[#2C6B4F] transition duration-300"
           >
-            {id.charAt(0).toUpperCase() + id.slice(1)}
-            <span className="absolute left-0 bottom-0 w-0 group-hover:w-full h-[2px] bg-[#F6F0F0] transition-all duration-300"></span>
+            Login sebagai Admin
           </button>
-        ))}
+        </div>
       </nav>
 
       {/* Section Home */}
       <section
         id="home"
-        className="min-h-screen flex flex-col items-center justify-center text-center px-6 relative"
+        className="min-h-screen flex items-center justify-center text-center px-6 py-24 bg-[#F7F4E9] relative"
       >
-        <Image
-          src="/images/banjir-background.jpg"
-          alt="Banjir Background"
-          fill
-          style={{ objectFit: "cover" }}
-          className="opacity-30"
-        />
-        <h1 className="text-4xl font-bold text-blue-700 relative z-10">
-          Pemetaan Banjir Kota Surabaya
-        </h1>
-        <p className="text-gray-700 mt-2 relative z-10">
-          Visualisasi berbasis Open Map Data dengan Metode Fuzzy Mamdani
-        </p>
-        <div className="mt-6 flex gap-4 relative z-10">
-          <button
-            onClick={() => router.push("/user/peta")}
-            className="px-4 py-2 bg-green-600 text-white rounded-md"
-          >
-            Lihat Peta (Tanpa Login)
-          </button>
-          {loading ? (
-            <span className="px-4 py-2 bg-gray-400 text-white rounded-md animate-pulse">
-              Memeriksa akun...
-            </span>
-          ) : user ? (
-            <button
-              onClick={() =>
-                router.push(
-                  role === "admin" ? "/admin/dashboard" : "/user/dashboard"
-                )
-              }
-              className="px-4 py-2 bg-blue-600 text-white rounded-md"
-            >
-              {role === "admin" ? "Dashboard Admin" : "Dashboard User"}
-            </button>
-          ) : (
-            <button
-              onClick={() => router.push("/admin/login")}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md"
-            >
-              Login Sebagai Admin
-            </button>
-          )}
+        <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-7xl mx-auto space-y-8 md:space-y-0 md:space-x-16">
+          {/* Konten Teks */}
+          <div className="flex flex-col items-start space-y-6 text-center md:text-left max-w-lg animate__animated animate__fadeIn animate__delay-1s">
+            <h1 className="text-5xl font-extrabold text-[#46969B] leading-tight md:text-6xl transition duration-500 ease-in-out transform hover:scale-105">
+              Peta Kerentanan Banjir Surabaya
+            </h1>
+            <p className="text-gray-600 text-lg md:text-xl max-w-3xl mx-auto md:mx-0 leading-relaxed">
+              Visualisasi wilayah rawan banjir di Kota Surabaya berbasis metode
+              Fuzzy Mamdani, membantu masyarakat untuk lebih siap menghadapi
+              bencana banjir. Temukan informasi terperinci tentang daerah yang
+              paling terdampak dan ambil tindakan preventif.
+            </p>
+          </div>
+
+          {/* Gambar */}
+          <div className="relative w-full max-w-md md:max-w-[600px] animate__animated animate__fadeIn animate__delay-2s">
+            <Image
+              src="/images/Landingpage.png"
+              alt="Peta Kerentanan Banjir"
+              layout="responsive"
+              width={800}
+              height={600}
+              className="rounded-lg object-cover transition duration-500 ease-in-out transform hover:scale-105"
+            />
+          </div>
         </div>
       </section>
 
       {/* Section About */}
       <section
         id="about"
-        className="min-h-screen flex flex-col justify-center items-start px-12 md:px-24 bg-cream-100"
+        className="min-h-screen flex flex-col justify-center items-center px-6 md:px-12 bg-[#f4f4f4]"
       >
-        <div className="max-w-5xl w-full">
-          <h2 className="text-3xl font-bold text-blue-700 mb-4">
-            Informasi Aplikasi
+        {/* Judul Section */}
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-[#46969B]">
+            Tentang Aplikasi
           </h2>
+        </div>
 
-          <h3 className="text-xl font-semibold text-green-600 mt-6">
-            Latar Belakang
-          </h3>
-          <p className="text-gray-700 mb-4 text-left">
-            Kota Surabaya merupakan salah satu wilayah di Indonesia yang rentan
-            terhadap banjir akibat curah hujan tinggi, sistem drainase yang
-            belum optimal, serta kepadatan penduduk. Berdasarkan data BNPB,
-            banjir masih menjadi salah satu bencana yang sering terjadi di
-            Indonesia, termasuk di Surabaya, dengan dampak signifikan terhadap
-            masyarakat dan infrastruktur. Oleh karena itu, diperlukan sistem
-            pemetaan yang mampu memvisualisasikan tingkat kerawanan banjir untuk
-            mendukung mitigasi dan pengambilan keputusan yang lebih efektif.
-          </p>
+        {/* Kolom Konten */}
+        <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 px-4 mb-10">
+          {/* Kolom Latar Belakang */}
+          <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col justify-center items-center transform transition-all duration-300 hover:shadow-2xl hover:scale-105 animate__animated animate__fadeInUp">
+            <div className="w-full bg-[#46969B] text-white text-center py-3 rounded-t-lg shadow-md mb-4 flex items-center justify-center">
+              <h3 className="text-2xl font-bold">Latar Belakang</h3>
+            </div>
+            <div className="flex flex-col items-center mb-4">
+              <FaMapMarkerAlt className="text-5xl text-[#46969B]" />
+            </div>
+            <p className="text-gray-700 text-lg md:text-xl leading-relaxed text-center">
+              Mengacu pada UU No. 24 Tahun 2007 tentang Penanggulangan Bencana,
+              Pasal 21 tentang pembuatan peta rawan bencana, perlu dilakukan
+              langkah-langkah lanjutan, seperti visualisasi pemetaan daerah
+              rawan banjir di Surabaya.
+            </p>
+          </div>
 
-          <h3 className="text-xl font-semibold text-green-600 mt-6">Tujuan</h3>
-          <p className="text-gray-700 text-left">
-            Website ini dikembangkan untuk menyediakan visualisasi data banjir
-            berbasis Open Map Data dengan metode Fuzzy Mamdani. Dengan sistem
-            ini, masyarakat dan pemerintah dapat memahami tingkat risiko banjir
-            di berbagai kecamatan di Surabaya berdasarkan berbagai parameter,
-            seperti curah hujan, sejarah banjir, jumlah penduduk, serta
-            ketersediaan taman dan drainase.
-          </p>
+          {/* Kolom Tujuan */}
+          <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col justify-center items-center transform transition-all duration-300 hover:shadow-2xl hover:scale-105 animate__animated animate__fadeInUp animate__delay-1s">
+            <div className="w-full bg-[#46969B] text-white text-center py-3 rounded-t-lg shadow-md mb-4 flex items-center justify-center">
+              <h3 className="text-2xl font-bold">Tujuan</h3>
+            </div>
+            <div className="flex flex-col items-center mb-4">
+              <FaBullhorn className="text-5xl text-[#46969B]" />
+            </div>
+            <p className="text-gray-700 text-lg md:text-xl leading-relaxed text-center">
+              Website ini dikembangkan untuk menyediakan visualisasi data banjir
+              berbasis Open Map Data dengan metode Fuzzy Mamdani, yang
+              mempermudah pengguna dalam memahami risiko banjir di berbagai
+              wilayah.
+            </p>
+          </div>
+
+          {/* Kolom Fitur */}
+          <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col justify-center items-center transform transition-all duration-300 hover:shadow-2xl hover:scale-105 animate__animated animate__fadeInUp animate__delay-2s">
+            <div className="w-full bg-[#46969B] text-white text-center py-3 rounded-t-lg shadow-md mb-4 flex items-center justify-center">
+              <h3 className="text-2xl font-bold">Fitur</h3>
+            </div>
+            <div className="flex flex-col items-center mb-4">
+              <FaMap className="text-5xl text-[#46969B]" />
+            </div>
+            <p className="text-gray-700 text-lg md:text-xl leading-relaxed text-center">
+              Sistem ini menyediakan visualisasi peta kerentanan banjir di
+              Surabaya berbasis kecamatan, yang memudahkan pengguna dalam
+              memahami tingkat kerawanan. Selain itu, juga tersedia peta lokasi
+              pos damkar untuk mendukung upaya mitigasi.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Section SOP */}
       <section
         id="SOP"
-        className="min-h-screen flex flex-col justify-center items-start px-12 md:px-24 bg-blue-100"
+        className="flex flex-col justify-center items-center min-h-[90vh] px-4 md:px-30 bg-[#EAEAEA] pb-3"
       >
-        <div className="max-w-5xl w-full">
-          <h2 className="text-3xl font-bold text-blue-700 mb-4">
+        <div
+          id="sop-content"
+          className="w-full max-w-7xl flex flex-col justify-center items-center text-center"
+        >
+          {/* Judul */}
+          <h2 className="text-3xl font-bold text-[#46969B] mb-8 mt-12">
             SOP Penanganan Banjir
           </h2>
-          <p className="text-gray-700 mb-4 text-left">
-            Banjir adalah salah satu bencana alam yang dapat terjadi kapan saja,
-            terutama di daerah perkotaan yang memiliki sistem drainase kurang
-            optimal. Untuk mengurangi dampak yang ditimbulkan, diperlukan
-            langkah-langkah yang tepat sebelum, saat, dan setelah banjir.
-            Berikut adalah prosedur standar operasional (SOP) yang dapat diikuti
-            untuk meningkatkan kesiapsiagaan dalam menghadapi banjir.
-          </p>
 
-          <h3 className="text-xl font-semibold text-green-600 mt-6">
-            1. Persiapan (Sebelum Banjir)
-          </h3>
-          <p className="text-gray-700 mb-2 text-left">
-            Tahap ini bertujuan untuk meminimalkan risiko dan dampak yang dapat
-            ditimbulkan oleh banjir dengan cara mempersiapkan diri dan
-            lingkungan sekitar.
-          </p>
-          <ul className="list-disc pl-6 text-gray-700 text-left">
-            <li>
-              <strong>Pantau informasi dari media massa</strong> – Pastikan
-              selalu mengikuti informasi terbaru dari BMKG dan BNPB mengenai
-              potensi curah hujan tinggi atau peringatan dini banjir.
-            </li>
-            <li>
-              <strong>Taruh dokumen penting di tempat yang tinggi</strong> –
-              Simpan surat-surat berharga seperti sertifikat, KTP, KK, dan
-              ijazah dalam plastik tahan air dan tempatkan di lokasi yang aman.
-            </li>
-            <li>
-              <strong>Matikan sumber listrik</strong> – Jika ada indikasi banjir
-              akan datang, segera matikan listrik untuk menghindari korsleting
-              atau risiko tersengat arus listrik.
-            </li>
-            <li>
-              <strong>Lari dan ikuti jalur evakuasi</strong> – Ketahui jalur
-              evakuasi yang sudah ditentukan oleh pemerintah setempat dan segera
-              bergerak ke tempat yang lebih tinggi.
-            </li>
-          </ul>
+          <div className="flex space-x-10">
+            {/* Kotak Persiapan */}
+            <div className="w-1/2 bg-white rounded-lg shadow-xl p-6">
+              <h3 className="text-2xl font-semibold text-[#264653] mb-4">
+                Persiapan
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Poin 1 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaBroadcastTower className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Pantau informasi dari media massa
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Pastikan selalu mengikuti perkembangan informasi terkini
+                    melalui media massa agar siap menghadapi bencana.
+                  </p>
+                </div>
+                {/* Poin 2 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaFileAlt className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Letakkan dokumen di tempat yang tinggi
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Pindahkan dokumen penting ke tempat yang lebih tinggi untuk
+                    mencegah kerusakan akibat banjir.
+                  </p>
+                </div>
+                {/* Poin 3 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaPlug className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Matikan sumber listrik dan perangkat elektronik
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Untuk menghindari bahaya listrik, pastikan semua perangkat
+                    dimatikan sebelum banjir terjadi.
+                  </p>
+                </div>
+                {/* Poin 4 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaRoute className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Kenali jalur evakuasi dan lokasi pengungsian
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Pelajari jalur evakuasi yang aman dan pastikan mengetahui
+                    lokasi pengungsian terdekat.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <h3 className="text-xl font-semibold text-green-600 mt-6">
-            2. Pencegahan (Jangka Panjang)
-          </h3>
-          <p className="text-gray-700 mb-2 text-left">
-            Upaya pencegahan sangat penting untuk mengurangi risiko banjir di
-            masa depan. Berikut adalah langkah-langkah yang dapat diterapkan
-            dalam kehidupan sehari-hari.
-          </p>
-          <ul className="list-disc pl-6 text-gray-700 text-left">
-            <li>
-              <strong>Bersihkan sampah di sungai</strong> – Pastikan saluran air
-              tidak tersumbat dengan sampah agar aliran air tetap lancar dan
-              mengurangi risiko banjir.
-            </li>
-            <li>
-              <strong>Menanam pohon untuk menambah resapan air</strong> – Akar
-              pohon dapat membantu menyerap air hujan dan mengurangi potensi
-              genangan air di lingkungan sekitar.
-            </li>
-            <li>
-              <strong>Buang sampah pada tempatnya</strong> – Sampah yang
-              berserakan dan masuk ke dalam drainase dapat menyebabkan
-              penyumbatan yang berkontribusi terhadap terjadinya banjir.
-            </li>
-          </ul>
-
-          <p className="text-gray-600 text-left mt-4">Sumber: BNPB</p>
+            {/* Kotak Pencegahan */}
+            <div className="w-1/2 bg-white rounded-lg shadow-xl p-6">
+              <h3 className="text-2xl font-semibold text-[#264653] mb-4">
+                Pencegahan
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Poin 1 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaRecycle className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Bersihkan sampah di sungai
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Pastikan saluran air tetap bersih agar aliran air lancar dan
+                    mencegah banjir.
+                  </p>
+                </div>
+                {/* Poin 2 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaTools className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Perbaiki saluran air
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Pastikan saluran air tidak tersumbat dan dalam kondisi baik
+                    untuk mencegah banjir.
+                  </p>
+                </div>
+                {/* Poin 3 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaTree className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Tanam pohon di sekitar rumah
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Tanam pohon untuk membantu penyerapan air dan mengurangi
+                    potensi banjir.
+                  </p>
+                </div>
+                {/* Poin 4 */}
+                <div className="flex flex-col items-center">
+                  <div className="w-14 h-14 bg-[#46969B] text-white rounded-full flex justify-center items-center mb-2">
+                    <FaWater className="text-2xl" />
+                  </div>
+                  <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                    Bangun sumur resapan
+                  </h4>
+                  <p className="text-gray-600 text-center text-xs">
+                    Membangun sumur resapan untuk membantu penyerapan air hujan
+                    ke dalam tanah.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+      {/* Footer */}
+      <footer className="bg-[#57B4BA] py-4 text-center text-[#F6F0F0]">
+        <p>
+          &copy; 2025 Sistem Pemetaan Kerawanan Banjir. All Rights Reserved.
+        </p>
+      </footer>
     </div>
   );
 }

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import UserLayout from "@/components/UserLayout";
+import UserLayout from "@/components/UserLayout"; // Pastikan import benar
 import { useRouter } from "next/router";
 
 const mapConfig = {
-  2019: 102,
-  2020: 103,
+  2019: 158,
+  2020: 159,
   2021: 104,
   2022: 100,
   2023: 101,
@@ -38,45 +38,70 @@ export default function PetaUserPage() {
 
   return (
     <UserLayout>
-      {/* Tahun dan Dropdown dalam satu baris */}
-      <div className="flex items-center gap-4 mb-4">
-        <span className="text-lg font-medium">Tahun:</span>
-        <select
-          className="border p-2 rounded-md bg-white"
-          value={selectedYear}
-          onChange={(e) =>
-            setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
-          }
-        >
-          {Object.keys(mapConfig).map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col flex-1">
+        {/* Tombol Kembali di kanan atas */}
+        <div className="flex justify-end mb-1">
+          <button
+            onClick={() => router.push("/")}
+            className="text-[#1D1D1D] underline text-sm font-medium bg-[#F6F0F0] px-4 py-2 rounded-md hover:bg-[#E8E1E1]"
+          >
+            Kembali ke Landing Page
+          </button>
+        </div>
+
+        {/* Dropdown Tahun */}
+        <div className="flex items-center gap-4 mb-4 bg-[#F6F0F0] p-4 rounded-md">
+          <span className="text-lg font-semibold text-[#1D1D1D]">Tahun:</span>
+          <select
+            className="border p-2 rounded-md bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#F6F0F0]"
+            value={selectedYear}
+            onChange={(e) =>
+              setSelectedYear(Number(e.target.value) as keyof typeof mapConfig)
+            }
+          >
+            {Object.keys(mapConfig).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Peta dan Legenda */}
+        <div className="flex gap-6 items-start mb-auto">
+          {/* Peta */}
+          <div className="flex-1">
+            {iframeUrl ? (
+              <iframe
+                src={iframeUrl}
+                frameBorder={0}
+                width="100%" // Lebar 100% untuk penuh
+                height="400vh" // Menyesuaikan tinggi sesuai layar
+                allowTransparency
+                className="w-full rounded-lg shadow-md"
+              />
+            ) : (
+              <p className="text-gray-500 text-center">Memuat peta...</p>
+            )}
+          </div>
+
+          {/* Kotak Legenda */}
+          <div className="w-48 p-4 bg-white rounded-lg shadow-md text-gray-700">
+            <h3 className="font-bold text-lg mb-2">Keterangan</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <span className="font-bold">0</span> - Rendah
+              </li>
+              <li>
+                <span className="font-bold">1</span> - Sedang
+              </li>
+              <li>
+                <span className="font-bold">2</span> - Tinggi
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-
-      {/* Peta langsung ditampilkan tanpa container tambahan */}
-      {iframeUrl ? (
-        <iframe
-          src={iframeUrl}
-          frameBorder={0}
-          width="100%"
-          height="600"
-          allowTransparency
-          className="w-full"
-        />
-      ) : (
-        <p className="text-gray-500 text-center">Memuat peta...</p>
-      )}
-
-      {/* Kembali ke Landing Page */}
-      <button
-        onClick={() => router.push("/")}
-        className="mt-6 text-gray-600 underline text-sm block text-center w-full"
-      >
-        Kembali ke Landing Page
-      </button>
     </UserLayout>
   );
 }

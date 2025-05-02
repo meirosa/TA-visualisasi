@@ -14,8 +14,11 @@ export default async function handler(
     console.log("📡 Fetching data from Supabase...");
 
     // Ambil data dari tabel "data"
-    const { data, error } = await supabase.from("data").select("*");
-
+    const { data, error } = await supabase
+    .from("data")
+    .select("*")
+  .order("tahun", { ascending: true })      // pertama urut tahun
+  .order("kecamatan", { ascending: true }); // kedua urut kecamatan
     // Cek apakah ada error dari Supabase
     if (error) {
       console.error("❌ Supabase Error:", error);

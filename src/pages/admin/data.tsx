@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/utils/supabase";
 import AdminLayout from "@/components/AdminLayout";
 import AddDataModal from "@/components/AddDataModal";
-import { Pencil, Trash, Search, Plus } from "lucide-react"; // Import ikon
+import { Pencil, Trash, Search, Plus } from "lucide-react";
 
 interface DataPeta {
   id_data: number;
@@ -19,49 +19,86 @@ export default function DataPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editData, setEditData] = useState<DataPeta | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>(""); // For search functionality
-  const [perPage, setPerPage] = useState<number>(10); // Default 10 data per page
-  const [currentPage, setCurrentPage] = useState<number>(1); // Start from page 1
-  const [totalData, setTotalData] = useState<number>(0); // Total data count
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [perPage, setPerPage] = useState<number>(10);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalData, setTotalData] = useState<number>(0);
+  const [selectedYear, setSelectedYear] = useState<string>("2023");
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+
+  const fetchTotalData = useCallback(async () => {
+    let query = supabase.from("data").select("*", { count: "exact" });
+
+    if (searchQuery) {
+      query = query.ilike("kecamatan", `%${searchQuery}%`);
+    }
+
+    if (selectedYear) {
+      query = query.eq("tahun", Number(selectedYear));
+    }
+
+    const { count, error } = await query;
+    if (error) {
+      console.error("Error fetching total data count:", error);
+    } else {
+      setTotalData(count || 0);
+    }
+  }, [searchQuery, selectedYear]);
+
+  const fetchAvailableYears = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("data")
+      .select("tahun")
+      .order("tahun", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching years:", error);
+    } else {
+      const tahunSet = new Set<string>();
+      data?.forEach((item: { tahun: number }) =>
+        tahunSet.add(item.tahun.toString())
+      );
+      setAvailableYears(Array.from(tahunSet));
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+
     let query = supabase
       .from("data")
       .select(
         "id_data, tahun, kecamatan, kepadatan_penduduk, taman_drainase, history_banjir, curah_hujan"
       )
-      .range((currentPage - 1) * perPage, currentPage * perPage - 1); // Paginate data
+      .order("tahun", { ascending: true })
+      .order("kecamatan", { ascending: true });
 
     if (searchQuery) {
-      query = query.ilike("kecamatan", `%${searchQuery}%`); // Search by kecamatan
+      query = query.ilike("kecamatan", `%${searchQuery}%`);
     }
+
+    if (selectedYear) {
+      query = query.eq("tahun", Number(selectedYear));
+    }
+
+    query = query.range((currentPage - 1) * perPage, currentPage * perPage - 1);
 
     const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching data:", error);
     } else {
-      setData(data);
-      fetchTotalData(); // Fetch total data for pagination
+      setData(data as DataPeta[]);
+      await fetchTotalData();
     }
-    setLoading(false);
-  }, [searchQuery, perPage, currentPage]);
 
-  const fetchTotalData = async () => {
-    const { count, error } = await supabase
-      .from("data")
-      .select("*", { count: "exact" });
-    if (error) {
-      console.error("Error fetching total data count:", error);
-    } else {
-      setTotalData(count || 0); // Set the total count of data
-    }
-  };
+    setLoading(false);
+  }, [searchQuery, perPage, currentPage, selectedYear, fetchTotalData]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    fetchAvailableYears();
+  }, [fetchData, fetchAvailableYears]);
 
   const handleDelete = async (id_data: number) => {
     const confirmDelete = window.confirm(
@@ -76,6 +113,7 @@ export default function DataPage() {
         console.error("Error deleting data:", error);
       } else {
         fetchData();
+        fetchAvailableYears();
       }
     }
   };
@@ -85,18 +123,22 @@ export default function DataPage() {
     setShowModal(true);
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(totalData / perPage); // Total pages
+  const handleAddDataSuccess = () => {
+    fetchData();
+    fetchAvailableYears();
+  };
+
+  const totalPages = Math.ceil(totalData / perPage);
 
   return (
     <AdminLayout>
       <div className="flex mb-4 justify-between items-center space-x-4 text-black">
-        <div className="flex items-center space-x-2 text-black">
+        <div className="flex items-center space-x-2">
           <label className="mr-2">Show</label>
           <select
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
-            className="border p-2"
+            className="border p-2 text-black"
           >
             {[10, 20, 30, 40, 50].map((num) => (
               <option key={num} value={num}>
@@ -104,10 +146,26 @@ export default function DataPage() {
               </option>
             ))}
           </select>
+
+          <label className="ml-4 mr-2">Tahun</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => {
+              setSelectedYear(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="border p-2 text-black"
+          >
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center space-x-2 bg-white border border-gray-400 px-2 py-1 rounded text-black">
-          <Search size={18} className="text-gray-500 text-black" />
+          <Search size={18} className="text-gray-500" />
           <input
             type="text"
             placeholder="Cari data kecamatan"
@@ -119,7 +177,7 @@ export default function DataPage() {
 
         <button
           onClick={() => setShowModal(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded flex items-center space-x-2 text-black"
+          className="bg-blue-500 text-white px-4 py-2 rounded flex items-center space-x-2"
         >
           <Plus size={18} />
           <span>Add Data</span>
@@ -127,7 +185,7 @@ export default function DataPage() {
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-black">Loading...</p>
       ) : (
         <div className="overflow-x-auto max-h-[calc(100vh-260px)] overflow-y-auto">
           <table className="table-auto w-full border-collapse border border-gray-400">
@@ -222,7 +280,7 @@ export default function DataPage() {
         <AddDataModal
           editData={editData}
           onClose={() => setShowModal(false)}
-          onSuccess={fetchData}
+          onSuccess={handleAddDataSuccess}
         />
       )}
     </AdminLayout>

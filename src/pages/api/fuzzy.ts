@@ -16,7 +16,9 @@ export default async function handler(
       .from("data")
       .select(
         "id_data, tahun, kecamatan, kepadatan_penduduk, taman_drainase, history_banjir, curah_hujan"
-      );
+      )
+      .order("tahun", { ascending: true })
+      .order("kecamatan", { ascending: true });;
 
     if (error || !data) {
       console.error("Error fetching data from Supabase:", error);

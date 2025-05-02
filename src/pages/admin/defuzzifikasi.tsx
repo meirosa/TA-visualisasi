@@ -19,6 +19,7 @@ export default function DefuzzifikasiPage() {
   const [loading, setLoading] = useState(true);
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedTahun, setSelectedTahun] = useState<number>(2023); // default
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,11 +28,30 @@ export default function DefuzzifikasiPage() {
         const response = await fetch("/api/fuzzy");
         const result = await response.json();
 
+        // Log hasil untuk memastikan data diterima dengan benar
+        console.log(result);
+
         if (!response.ok) {
           throw new Error(result.error || "Failed to fetch data");
         }
 
         setData(result.result);
+
+        // Ambil tahun unik dan set default tahun pertama jika belum ada
+        const tahunList = Array.from(
+          new Set([
+            ...result.result.map((d: DataFuzzy) => d.tahun),
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+          ])
+        ).sort();
+
+        if (!selectedTahun && tahunList.length > 0) {
+          setSelectedTahun(tahunList[0]);
+        }
       } catch (error) {
         console.error("Error fetching defuzzifikasi data:", error);
       }
@@ -39,11 +59,18 @@ export default function DefuzzifikasiPage() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedTahun]); // Fetch ulang data ketika selectedTahun berubah
 
-  const totalData = data.length;
+  const tahunOptions = Array.from(
+    new Set([...data.map((d) => d.tahun), 2019, 2020, 2021, 2022, 2023])
+  ).sort();
+
+  const filteredData = data.filter((d) => d.tahun === selectedTahun);
+  console.log("Filtered Data:", filteredData); // Log filtered data untuk pemeriksaan
+
+  const totalData = filteredData.length;
   const totalPages = Math.ceil(totalData / perPage);
-  const displayedData = data.slice(
+  const displayedData = filteredData.slice(
     (currentPage - 1) * perPage,
     currentPage * perPage
   );
@@ -57,6 +84,22 @@ export default function DefuzzifikasiPage() {
 
         <div className="flex justify-between items-center mb-4 text-black">
           <div>
+            <label className="mr-2">Tahun</label>
+            <select
+              value={selectedTahun}
+              onChange={(e) => {
+                setSelectedTahun(parseInt(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border p-2 mr-4"
+            >
+              {tahunOptions.map((tahun) => (
+                <option key={tahun} value={tahun}>
+                  {tahun}
+                </option>
+              ))}
+            </select>
+
             <label className="mr-2">Show</label>
             <select
               value={perPage}
@@ -75,7 +118,6 @@ export default function DefuzzifikasiPage() {
           </div>
         </div>
 
-        {/* Wrapper tabel dengan flex-grow agar tabel mengisi ruang kosong */}
         <div className="flex-grow overflow-auto border border-gray-400">
           {loading ? (
             <p className="text-black">Loading...</p>
@@ -102,33 +144,40 @@ export default function DefuzzifikasiPage() {
                 </tr>
               </thead>
               <tbody>
-                {displayedData.map((row, index) => (
-                  <tr
-                    key={row.id_data}
-                    className="hover:bg-gray-100 text-black"
-                  >
-                    <td className="border px-4 py-2">
-                      {(currentPage - 1) * perPage + index + 1}
+                {displayedData.length > 0 ? (
+                  displayedData.map((row, index) => (
+                    <tr
+                      key={row.id_data}
+                      className="hover:bg-gray-100 text-black"
+                    >
+                      <td className="border px-4 py-2">
+                        {(currentPage - 1) * perPage + index + 1}
+                      </td>
+                      <td className="border px-4 py-2">{row.tahun}</td>
+                      <td className="border px-4 py-2">{row.kecamatan}</td>
+                      <td className="border px-4 py-2">
+                        {row.kepadatan_penduduk}
+                      </td>
+                      <td className="border px-4 py-2">{row.taman_drainase}</td>
+                      <td className="border px-4 py-2">{row.history_banjir}</td>
+                      <td className="border px-4 py-2">{row.curah_hujan}</td>
+                      <td className="border px-4 py-2">{row.centroid}</td>
+                      <td className="border px-4 py-2">{row.kategori}</td>
+                      <td className="border px-4 py-2">{row.cluster}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={10} className="text-center py-4">
+                      No data available for the selected year.
                     </td>
-                    <td className="border px-4 py-2">{row.tahun}</td>
-                    <td className="border px-4 py-2">{row.kecamatan}</td>
-                    <td className="border px-4 py-2">
-                      {row.kepadatan_penduduk}
-                    </td>
-                    <td className="border px-4 py-2">{row.taman_drainase}</td>
-                    <td className="border px-4 py-2">{row.history_banjir}</td>
-                    <td className="border px-4 py-2">{row.curah_hujan}</td>
-                    <td className="border px-4 py-2">{row.centroid}</td>
-                    <td className="border px-4 py-2">{row.kategori}</td>
-                    <td className="border px-4 py-2">{row.cluster}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* Pagination tetap di bawah, tidak ikut tergulung */}
         <div className="flex justify-between items-center mt-4 text-black">
           <span>
             Showing {(currentPage - 1) * perPage + 1} to{" "}

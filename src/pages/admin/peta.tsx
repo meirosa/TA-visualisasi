@@ -3,10 +3,10 @@ import AdminLayout from "@/components/AdminLayout";
 
 const mapConfig = {
   2019: 158,
-  2020: 159,
-  2021: 104,
-  2022: 100,
-  2023: 101,
+  2020: 161,
+  2021: 162,
+  2022: 163,
+  2023: 165,
 } as const;
 
 export default function PetaPage() {

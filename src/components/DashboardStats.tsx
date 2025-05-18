@@ -18,25 +18,9 @@ const DashboardStats: React.FC = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Ambil tahun terbaru untuk kejadian banjir
-      const { data: latestYearData, error: yearError } = await supabase
-        .from("data")
-        .select("tahun")
-        .order("tahun", { ascending: false })
-        .limit(1);
-
-      if (yearError || !latestYearData.length) {
-        console.error("Error fetching latest year:", yearError);
-        return;
-      }
-
-      const latestYear = latestYearData[0].tahun;
-
-      // Ambil data kejadian banjir hanya untuk tahun terbaru
       const { data: floodData, error: floodError } = await supabase
         .from("data")
-        .select("kecamatan, history_banjir")
-        .eq("tahun", latestYear);
+        .select("kecamatan, history_banjir, tahun");
 
       if (floodError) {
         console.error("Error fetching flood data:", floodError);
@@ -44,11 +28,9 @@ const DashboardStats: React.FC = () => {
       }
 
       if (floodData) {
-        // Hitung jumlah kecamatan unik
         const uniqueKecamatan = new Set(floodData.map((row) => row.kecamatan));
         setJumlahKecamatan(uniqueKecamatan.size);
 
-        // Hitung total kejadian banjir tahun terbaru
         const totalBanjir = floodData.reduce(
           (sum, row) => sum + (row.history_banjir ?? 0),
           0
@@ -56,11 +38,11 @@ const DashboardStats: React.FC = () => {
         setJumlahBanjir(totalBanjir);
       }
 
-      // Ambil data curah hujan selama 5 tahun terakhir
       const { data: rainfallData, error: rainfallError } = await supabase
         .from("data")
         .select("tahun, curah_hujan")
-        .gte("tahun", latestYear - 4) // Ambil 5 tahun terakhir
+        .gte("tahun", 2019)
+        .lte("tahun", 2023)
         .order("tahun", { ascending: true });
 
       if (rainfallError) {
@@ -69,10 +51,10 @@ const DashboardStats: React.FC = () => {
       }
 
       if (rainfallData) {
-        // Hitung rata-rata curah hujan per tahun
         const groupedRainfall: {
           [key: string]: { total: number; count: number };
         } = {};
+
         rainfallData.forEach((row) => {
           const tahun = String(row.tahun);
           if (
@@ -108,27 +90,27 @@ const DashboardStats: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-full w-full overflow-hidden flex flex-col bg-gray-50">
-      <main className="flex-1 overflow-auto p-2 bg-gray-50">
-        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-2">
+    <div className="min-h-screen w-full flex flex-col bg-gray-50">
+      <main className="flex-1 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4">
           {/* Jumlah Kecamatan */}
-          <div className="border rounded-md shadow-sm p-2 bg-white">
+          <div className="border rounded-md shadow-sm p-4 bg-white">
             <h2 className="text-base font-medium">Jumlah Kecamatan</h2>
             <p className="text-xl font-bold">{jumlahKecamatan} Kecamatan</p>
           </div>
 
           {/* Jumlah Kejadian Banjir */}
-          <div className="border rounded-md shadow-sm p-2 bg-white">
+          <div className="border rounded-md shadow-sm p-4 bg-white">
             <h2 className="text-base font-medium">Jumlah Kejadian Banjir</h2>
             <p className="text-xl font-bold">{jumlahBanjir} Kejadian</p>
           </div>
 
           {/* Grafik Curah Hujan */}
-          <div className="border rounded-md shadow-sm p-2 bg-white col-span-1 md:col-span-2">
+          <div className="border rounded-md shadow-sm p-4 bg-white col-span-1 md:col-span-2">
             <h2 className="text-base font-medium">
-              Rata-rata Curah Hujan (mm/tahun) 
+              Rata-rata Curah Hujan (mm/tahun)
             </h2>
-            <div className="h-40">
+            <div className="h-56 mt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rainfallData}>
                   <XAxis dataKey="year" />

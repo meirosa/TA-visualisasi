@@ -4,10 +4,10 @@ import { useRouter } from "next/router";
 
 const mapConfig = {
   2019: 158,
-  2020: 159,
-  2021: 104,
-  2022: 100,
-  2023: 101,
+  2020: 161,
+  2021: 162,
+  2022: 163,
+  2023: 165,
 } as const;
 
 export default function PetaUserPage() {
@@ -76,7 +76,7 @@ export default function PetaUserPage() {
                 src={iframeUrl}
                 frameBorder={0}
                 width="100%" // Lebar 100% untuk penuh
-                height="400vh" // Menyesuaikan tinggi sesuai layar
+                height="395vh" // Menyesuaikan tinggi sesuai layar
                 allowTransparency
                 className="w-full rounded-lg shadow-md"
               />

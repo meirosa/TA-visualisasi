@@ -1,6 +1,14 @@
 import { useRouter } from "next/router";
-import { ReactNode } from "react";
-import { LayoutDashboard, Map, Database, Activity, LogOut } from "lucide-react";
+import { ReactNode, useState } from "react";
+import {
+  LayoutDashboard,
+  Map,
+  Database,
+  Activity,
+  LogOut,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -8,6 +16,7 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
+  const [showPetaSubmenu, setShowPetaSubmenu] = useState(false);
 
   const isActive = (path: string) => router.pathname === path;
 
@@ -17,10 +26,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <LayoutDashboard className="mr-2" size={20} />,
       label: "Dashboard",
     },
+  ];
+
+  const petaSubItems = [
     {
       path: "/admin/peta",
-      icon: <Map className="mr-2" size={20} />,
-      label: "Peta",
+      label: "Peta Kerentanan",
+    },
+    {
+      path: "/admin/damkar",
+      label: "Peta Damkar",
     },
   ];
 
@@ -37,9 +52,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
   ];
 
-  const renderButton = (path: string, icon: ReactNode, label: string) => (
+  const renderButton = (
+    path: string,
+    icon: ReactNode,
+    label: string,
+    onClick?: () => void
+  ) => (
     <button
-      onClick={() => router.push(path)}
+      onClick={onClick || (() => router.push(path))}
       className={`flex items-center w-full px-4 py-2 border border-black text-black ${
         isActive(path) ? "bg-[#57B4BA]" : "bg-white hover:bg-gray-200"
       } transition rounded-md mt-2`}
@@ -50,7 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#F7F4E9]">
+    <div className="flex h-screen bg-[#F7F4E9]">
       {/* Sidebar */}
       <aside className="w-64 bg-[#46969B] text-black flex flex-col h-screen">
         {/* Header Sidebar */}
@@ -59,11 +79,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* MENU */}
-        <div className="p-6">
+        <div className="p-6 flex flex-col flex-grow overflow-auto">
           <h3 className="font-bold mb-2">MENU</h3>
           {menuItems.map((item) =>
             renderButton(item.path, item.icon, item.label)
           )}
+
+          {/* Peta - dropdown menu */}
+          <div className="mt-2">
+            <button
+              onClick={() => setShowPetaSubmenu(!showPetaSubmenu)}
+              className="flex items-center w-full px-4 py-2 border border-black text-black bg-white hover:bg-gray-200 transition rounded-md"
+            >
+              <Map className="mr-2" size={20} />
+              Peta
+              {showPetaSubmenu ? (
+                <ChevronUp className="ml-auto" size={18} />
+              ) : (
+                <ChevronDown className="ml-auto" size={18} />
+              )}
+            </button>
+
+            {showPetaSubmenu && (
+              <div className="ml-6 mt-2 space-y-2">
+                {petaSubItems.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => router.push(item.path)}
+                    className={`block w-full text-left px-4 py-2 text-sm rounded-md ${
+                      isActive(item.path)
+                        ? "bg-[#57B4BA] text-white"
+                        : "text-black hover:bg-gray-200"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <h3 className="font-bold mt-4 mb-2">KELOLA DATA</h3>
           {dataItems.map((item) =>
@@ -72,7 +126,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Logout tetap di bawah */}
-        <div className="mt-auto p-6">
+        <div className="p-6">
           <button
             onClick={() => router.push("/")}
             className="flex items-center w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
@@ -94,8 +148,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </header>
 
-        {/* Konten dinamis */}
-        <main className="flex-1 p-8">{children}</main>
+        {/* Konten dinamis dengan scroll */}
+        <main className="flex-1 overflow-auto p-8">{children}</main>
       </div>
     </div>
   );

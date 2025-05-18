@@ -1,10 +1,9 @@
+import AdminLayout from "@/components/AdminLayout";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
-import DamkarLayout from "@/components/DamkarLayout";
 import { supabase } from "@/utils/supabase";
 
-// Import MapContainer dan komponen Leaflet secara dinamis tanpa SSR
+// Import komponen Map secara dinamis agar tidak dirender di server
 const MapWithNoSSR = dynamic(
   () =>
     import("react-leaflet").then((mod) => {
@@ -47,7 +46,6 @@ type Damkar = {
 export default function DamkarPage() {
   const [damkarList, setDamkarList] = useState<Damkar[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     import("leaflet").then((L) => {
@@ -84,11 +82,11 @@ export default function DamkarPage() {
 
   if (loading)
     return (
-      <DamkarLayout>
+      <AdminLayout>
         <div className="flex justify-center items-center min-h-screen text-gray-500 text-lg">
           Memuat data damkar...
         </div>
-      </DamkarLayout>
+      </AdminLayout>
     );
 
   const centerPosition: [number, number] = damkarList.length
@@ -96,19 +94,9 @@ export default function DamkarPage() {
     : [-7.257472, 112.75209];
 
   return (
-    <DamkarLayout>
-      {/* Tombol kembali di kanan atas halaman */}
-      <div className="flex justify-end px-4 pt-4">
-        <button
-          onClick={() => router.push("/")}
-          className="text-[#1D1D1D] underline text-sm font-medium bg-[#F6F0F0] px-4 py-2 rounded-md hover:bg-[#E8E1E1]"
-        >
-          Kembali ke Landing Page
-        </button>
-      </div>
-
+    <AdminLayout>
       <div className="flex flex-col lg:flex-row gap-8 p-4 bg-gray-100">
-        {/* Daftar damkar */}
+        {/* Daftar Damkar */}
         <div className="bg-white rounded-lg shadow-md p-4 max-w-md max-h-[70vh] overflow-y-auto">
           <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
             Daftar Damkar
@@ -133,16 +121,12 @@ export default function DamkarPage() {
           </ul>
         </div>
 
-        {/* Peta */}
+        {/* Peta Damkar */}
         <div
-          className="rounded-lg overflow-hidden shadow-md"
-          style={{ width: "100%", height: "70vh" }}
+          className="rounded-lg overflow-hidden shadow-md w-full"
+          style={{ blockSize: "70vh" }} // gunakan properti logis
         >
-          <MapWithNoSSR
-            center={centerPosition}
-            zoom={13}
-            scrollWheelZoom={true}
-          >
+          <MapWithNoSSR center={centerPosition} zoom={13}>
             {damkarList.map((damkar) => (
               <MarkerNoSSR
                 key={damkar.id}
@@ -154,7 +138,7 @@ export default function DamkarPage() {
                     <br />
                     {damkar.alamat}
                     <br />
-                    Telp: {damkar.telepon}
+                    <span>{damkar.telepon}</span>
                   </div>
                 </PopupNoSSR>
               </MarkerNoSSR>
@@ -162,6 +146,6 @@ export default function DamkarPage() {
           </MapWithNoSSR>
         </div>
       </div>
-    </DamkarLayout>
+    </AdminLayout>
   );
 }

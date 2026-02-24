@@ -2,10 +2,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import Papa, { ParseResult } from "papaparse";
 
+interface Kecamatan {
+  id_kecamatan: number;
+  nama: string;
+}
+
 interface DataPeta {
   id_data?: number;
   tahun: number;
-  kecamatan: string;
+  id_kecamatan: number;
   kepadatan_penduduk: number;
   taman_drainase: number;
   history_banjir: number;
@@ -23,116 +28,121 @@ interface CsvError {
   reason: string;
 }
 
-// Hook debounce untuk mengurangi request/filter kecamatan saat mengetik
-const useDebounce = (value: string, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
 export default function AddDataModal({
   editData,
   onClose,
   onSuccess,
 }: AddDataProps) {
   const [form, setForm] = useState<DataPeta>({
-    tahun: 0,
-    kecamatan: "",
-    kepadatan_penduduk: 0,
-    taman_drainase: 0,
-    history_banjir: 0,
-    curah_hujan: 0,
+    tahun: undefined as unknown as number,
+    id_kecamatan: undefined as unknown as number,
+    kepadatan_penduduk: undefined as unknown as number,
+    taman_drainase: undefined as unknown as number,
+    history_banjir: undefined as unknown as number,
+    curah_hujan: undefined as unknown as number,
   });
-  const [kecamatanList, setKecamatanList] = useState<string[]>([]);
-  const [filteredKecamatan, setFilteredKecamatan] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const [kecamatanList, setKecamatanList] = useState<Kecamatan[]>([]);
   const [mode, setMode] = useState<"manual" | "csv">("manual");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvErrors, setCsvErrors] = useState<CsvError[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const debouncedKecamatan = useDebounce(form.kecamatan, 300);
-
   // Fetch kecamatan list
   useEffect(() => {
     const fetchKecamatan = async () => {
-      const { data, error } = await supabase.from("kecamatan").select("nama");
-      if (!error && data) {
-        setKecamatanList(data.map((item) => item.nama));
-      } else {
-        console.error("Gagal fetch kecamatan:", error);
-      }
+      const { data, error } = await supabase.from("kecamatan").select("*");
+      if (!error && data) setKecamatanList(data);
+      else console.error("Gagal fetch kecamatan:", error);
     };
     fetchKecamatan();
   }, []);
 
-  // Prefill if editing
   useEffect(() => {
-    if (editData) {
-      setForm(editData);
-    }
+    if (editData) setForm(editData);
   }, [editData]);
 
-  // Autocomplete filter
-  useEffect(() => {
-    if (debouncedKecamatan) {
-      const suggestions = kecamatanList.filter((k) =>
-        k.toLowerCase().includes(debouncedKecamatan.toLowerCase())
-      );
-      setFilteredKecamatan(suggestions);
-      setShowSuggestions(suggestions.length > 0);
-    } else {
-      setShowSuggestions(false);
-    }
-  }, [debouncedKecamatan, kecamatanList]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
     setForm({
       ...form,
-      [name]: name === "kecamatan" ? value : Number(value),
+      [name]:
+        name === "id_kecamatan"
+          ? value
+            ? Number(value)
+            : undefined
+          : Number(value),
     });
   };
 
-  const handleSelectKecamatan = (nama: string) => {
-    setForm({ ...form, kecamatan: nama });
-    setShowSuggestions(false);
-  };
-
+  // ================================
+  // 🔹 Manual Entry
+  // ================================
   const handleSave = async () => {
+    if (!editData && !form.id_kecamatan) {
+      alert("Silakan pilih kecamatan");
+      return;
+    }
+
     setLoading(true);
     try {
-      if (editData?.id_data) {
-        const { error } = await supabase
+      const { id_data, id_kecamatan, ...rest } = form;
+
+      // Bersihkan data
+      const cleanedData: Record<string, number> = {};
+      Object.entries(rest).forEach(([key, value]) => {
+        if (typeof value === "number" && !isNaN(value))
+          cleanedData[key] = value;
+      });
+
+      let insertError;
+      let newId: number | undefined;
+
+      if (editData && id_data) {
+        ({ error: insertError } = await supabase
           .from("data")
-          .update(form)
-          .eq("id_data", editData.id_data);
-        if (error) throw error;
+          .update(cleanedData)
+          .eq("id_data", id_data));
+        newId = id_data;
       } else {
-        const { error } = await supabase.from("data").insert([form]);
-        if (error) throw error;
+        // Tambah data baru → ambil id_data hasil insert
+        const { data: inserted, error } = await supabase
+          .from("data")
+          .insert([{ ...cleanedData, id_kecamatan }])
+          .select()
+          .single();
+        insertError = error;
+        newId = inserted?.id_data;
       }
-      alert("Data berhasil disimpan!");
+
+      if (insertError || !newId)
+        throw insertError || new Error("Gagal insert data");
+
+      // ❌ HAPUS pemanggilan hitung fuzzy otomatis
+      // await fetch("/api/hitung-fuzzy", { method: "POST" });
+
+      alert("Data berhasil disimpan!"); // tanpa hitung fuzzy
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error("ERROR SIMPAN:", err);
       alert("Gagal menyimpan data!");
     } finally {
       setLoading(false);
     }
   };
 
+  // ================================
+  // 🔹 CSV Upload
+  // ================================
   const handleUpload = () => {
     if (!csvFile) {
       alert("Silakan pilih file CSV terlebih dahulu.");
       return;
     }
+
     setLoading(true);
     setCsvErrors([]);
 
@@ -144,16 +154,21 @@ export default function AddDataModal({
         const validRows: DataPeta[] = [];
 
         results.data.forEach((row, idx) => {
+          const kecamatan = kecamatanList.find(
+            (k) => k.nama.toLowerCase() === (row.kecamatan ?? "").toLowerCase(),
+          );
+
           const parsed: DataPeta = {
             tahun: Number(row.tahun),
-            kecamatan: row.kecamatan,
+            id_kecamatan: kecamatan?.id_kecamatan ?? 0,
             kepadatan_penduduk: Number(row.kepadatan_penduduk),
             taman_drainase: Number(row.taman_drainase),
             history_banjir: Number(row.history_banjir),
             curah_hujan: Number(row.curah_hujan),
           };
+
           const isValid =
-            parsed.kecamatan &&
+            parsed.id_kecamatan &&
             !isNaN(parsed.tahun) &&
             !isNaN(parsed.kepadatan_penduduk) &&
             !isNaN(parsed.taman_drainase) &&
@@ -161,31 +176,49 @@ export default function AddDataModal({
             !isNaN(parsed.curah_hujan);
 
           if (!isValid) {
-            errors.push({ row: idx + 2, reason: "Format tidak valid" });
-          } else {
-            validRows.push(parsed);
-          }
+            errors.push({
+              row: idx + 2,
+              reason: "Format tidak valid / kecamatan tidak ditemukan",
+            });
+          } else validRows.push(parsed);
         });
 
         setCsvErrors(errors);
 
         if (validRows.length > 0) {
-          const { error } = await supabase.from("data").insert(validRows);
+          // Insert batch + ambil semua id_data baru
+          const { data: insertedRows, error } = await supabase
+            .from("data")
+            .insert(validRows)
+            .select("id_data")
+            .returns<{ id_data: number }[]>();
+
           if (error) {
             console.error(error);
             alert("Error saat upload batch");
           } else {
-            alert(`Upload berhasil: ${validRows.length} baris`);
+            // ❌ HAPUS pemanggilan hitung fuzzy otomatis
+            // const idList = insertedRows.map((r) => r.id_data);
+            // await fetch("/api/hitung-fuzzy", {
+            //   method: "POST",
+            //   headers: { "Content-Type": "application/json" },
+            //   body: JSON.stringify({ id_data_list: idList }),
+            // });
+
+            alert(
+              `Upload berhasil: ${validRows.length} baris!`, // tanpa hitung fuzzy
+            );
             onSuccess();
             onClose();
           }
         } else {
-          if (errors.length > 0) {
-            alert("CSV berisi data yang tidak valid.");
-          } else {
-            alert("CSV kosong atau tidak ada data valid.");
-          }
+          alert(
+            errors.length > 0
+              ? "CSV berisi data yang tidak valid."
+              : "CSV kosong atau tidak ada data valid.",
+          );
         }
+
         setLoading(false);
       },
       error: (err) => {
@@ -196,6 +229,9 @@ export default function AddDataModal({
     });
   };
 
+  // ================================
+  // Render Form
+  // ================================
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="bg-white text-black p-6 rounded-lg shadow-lg w-2/3 max-h-[90vh] overflow-y-auto">
@@ -203,6 +239,7 @@ export default function AddDataModal({
           {editData ? "Edit Data" : "Tambah Data"}
         </h2>
 
+        {/* Mode toggle */}
         <div className="mb-4 flex space-x-4">
           <label className="cursor-pointer">
             <input
@@ -228,47 +265,47 @@ export default function AddDataModal({
 
         {mode === "manual" ? (
           <div className="space-y-4">
-            {/* Tahun */}
             <div>
               <label className="block font-semibold">Tahun:</label>
               <input
                 name="tahun"
                 type="number"
-                value={form.tahun}
+                value={form.tahun ?? ""}
                 onChange={handleChange}
                 className="border p-2 w-full rounded"
                 min={0}
                 disabled={loading}
               />
             </div>
-            {/* Kecamatan */}
+
             <div>
               <label className="block font-semibold">Kecamatan:</label>
-              <div className="relative">
-                <input
-                  name="kecamatan"
-                  value={form.kecamatan}
-                  onChange={handleChange}
-                  className="border p-2 w-full rounded"
-                  autoComplete="off"
-                  disabled={loading}
-                />
-                {showSuggestions && (
-                  <ul className="absolute left-0 right-0 bg-white border shadow-lg mt-1 max-h-40 overflow-y-auto z-20 rounded">
-                    {filteredKecamatan.map((nama) => (
-                      <li
-                        key={nama}
-                        onClick={() => handleSelectKecamatan(nama)}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                      >
-                        {nama}
-                      </li>
-                    ))}
-                  </ul>
+              <select
+                name="id_kecamatan"
+                value={form.id_kecamatan ?? ""}
+                onChange={handleChange}
+                className="border p-2 w-full rounded bg-gray-100"
+                disabled={!!editData || loading}
+              >
+                {!editData && (
+                  <option value="" disabled>
+                    Pilih Kecamatan
+                  </option>
                 )}
-              </div>
+                {kecamatanList.map((k) => (
+                  <option key={k.id_kecamatan} value={k.id_kecamatan}>
+                    {k.nama}
+                  </option>
+                ))}
+              </select>
+              {editData && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Kecamatan tidak dapat diubah saat edit data
+                </p>
+              )}
             </div>
-            {/* Angka lainnya */}
+
+            {/* Input angka lainnya */}
             {[
               "kepadatan_penduduk",
               "taman_drainase",
@@ -285,7 +322,7 @@ export default function AddDataModal({
                 <input
                   name={field}
                   type="number"
-                  value={form[field as keyof DataPeta] as number}
+                  value={form[field as keyof DataPeta] ?? ""}
                   onChange={handleChange}
                   className="border p-2 w-full rounded"
                   min={0}
@@ -318,36 +355,32 @@ export default function AddDataModal({
           </div>
         )}
 
-        {/* Tombol aksi sejajar */}
+        {/* Tombol aksi */}
         <div className="mt-6 flex justify-end space-x-3">
-          {mode === "csv" && (
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Batal
+          </button>
+          {mode === "manual" ? (
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="bg-[#07263B] text-white px-4 py-2 rounded hover:bg-[#061f2f]"
+            >
+              {loading ? "Menyimpan..." : "Simpan"}
+            </button>
+          ) : (
             <button
               onClick={handleUpload}
               disabled={loading || !csvFile}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              type="button"
+              className="bg-[#07263B] text-white px-4 py-2 rounded hover:bg-[#061f2f]"
             >
               {loading ? "Mengunggah..." : "Unggah CSV"}
             </button>
           )}
-          {mode === "manual" && (
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-              type="button"
-            >
-              {loading ? "Menyimpan..." : "Simpan"}
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            disabled={loading}
-            className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-            type="button"
-          >
-            Batal
-          </button>
         </div>
       </div>
     </div>

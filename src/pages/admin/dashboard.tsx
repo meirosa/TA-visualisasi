@@ -1,11 +1,10 @@
 import AdminLayout from "@/components/AdminLayout";
-import DashboardStats from "@/components/DashboardStats";
+import DashboardStats from "@/components/DashboardAdmin";
 
 export default function Dashboard() {
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-white text-black p-4">
-        <h2 className="text-2xl font-bold">Dashboard</h2>
+      <div className="h-[75vh] flex flex-col">
 
         {/* Tambahkan komponen DashboardStats di sini */}
         <div className="mt-4">

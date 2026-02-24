@@ -1,165 +1,240 @@
-import { useEffect, useState } from "react";
+// src/pages/defuzzifikasi.tsx
+import { useEffect, useState, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 
-interface DataFuzzy {
+interface FuzzyResult {
   id_data: number;
   tahun: number;
   kecamatan: string;
-  kepadatan_penduduk: number;
-  taman_drainase: number;
-  history_banjir: number;
-  curah_hujan: number;
-  centroid: number;
-  kategori: string;
-  cluster: number;
+  mamdani: { crisp_value: number; kategori: string };
+  sugeno: { crisp_value: number; kategori: string };
+  tsukamoto: { crisp_value: number; kategori: string };
 }
 
 export default function DefuzzifikasiPage() {
-  const [data, setData] = useState<DataFuzzy[]>([]);
+  const [data, setData] = useState<FuzzyResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedTahun, setSelectedTahun] = useState<number | null>(null); // default null, diubah otomatis
+  const [selectedTahun, setSelectedTahun] = useState<number | null>(null);
+  const [tahunList, setTahunList] = useState<number[]>([]);
+  const [totalData, setTotalData] = useState(0);
 
+  const formatAngka = (value: number) =>
+    new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(value);
+
+  const labelBg = (label: string) => {
+    switch (label.toLowerCase()) {
+      case "tinggi":
+        return "bg-red-500 text-black";
+      case "sedang":
+        return "bg-yellow-400 text-black";
+      case "rendah":
+        return "bg-green-500 text-black";
+      default:
+        return "bg-gray-300 text-black";
+    }
+  };
+
+  // ================= FETCH DATA DEFUZZIFIKASI =================
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: perPage.toString(),
+      });
+      if (selectedTahun !== null)
+        params.append("tahun", selectedTahun.toString());
+
+      const res = await fetch(`/api/defuzzifikasi?${params.toString()}`);
+      const result = await res.json();
+
+      setData(result.data || []);
+      setTotalData(result.total || 0);
+    } catch (err) {
+      console.error("Fetch Defuzzifikasi Error:", err);
+    }
+    setLoading(false);
+  }, [currentPage, perPage, selectedTahun]);
+
+  // ================= EFFECT UTAMA =================
   useEffect(() => {
-    const fetchData = async () => {
+    const init = async () => {
       setLoading(true);
+
       try {
-        const response = await fetch("/api/fuzzy");
-        const result = await response.json();
+        // 1️⃣ Panggil hitung fuzzy
+        const res = await fetch("/api/hitung-fuzzy", {
+          method: "POST",
+        });
 
-        if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch data");
+        if (!res.ok) {
+          console.error("Hitung fuzzy gagal");
+          setLoading(false);
+          return;
         }
 
-        // Pastikan result bertipe DataFuzzy[]
-        if (Array.isArray(result.result)) {
-          setData(result.result);
-        } else {
-          throw new Error("Invalid data format");
-        }
-      } catch (error) {
-        console.error("Error fetching defuzzifikasi data:", error);
+        // 2️⃣ Tunggu backend benar-benar selesai
+        await res.json();
+
+        // 3️⃣ Tambah delay kecil biar Supabase commit dulu
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        // 4️⃣ Baru fetch tabel
+        await fetchData();
+      } catch (err) {
+        console.error("Init Defuzzifikasi Error:", err);
       }
+
       setLoading(false);
     };
 
-    fetchData();
+    init();
+  }, [currentPage, perPage, selectedTahun, fetchData]);
+  // ================= FETCH LIST TAHUN =================
+  useEffect(() => {
+    const fetchTahun = async () => {
+      try {
+        const res = await fetch("/api/tahun");
+        const tahun = await res.json();
+        setTahunList(tahun);
+      } catch (err) {
+        console.error("Fetch Tahun Error:", err);
+      }
+    };
+    fetchTahun();
   }, []);
 
-  // Ambil semua tahun unik dari data
-  const tahunList = Array.from(new Set(data.map((d) => d.tahun))).sort();
-
-  // Set default selectedTahun jika belum ada
-  useEffect(() => {
-    if (tahunList.length > 0 && selectedTahun === null) {
-      setSelectedTahun(tahunList[0]); // Set tahun pertama sebagai default jika null
-    }
-  }, [tahunList, selectedTahun]);
-
-  const filteredData = data.filter((d) => d.tahun === selectedTahun);
-  const totalData = filteredData.length;
   const totalPages = Math.ceil(totalData / perPage);
-  const displayedData = filteredData.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage
-  );
 
   return (
     <AdminLayout>
-      <div className="h-[75vh] flex flex-col">
-        <h1 className="text-xl font-bold mb-4 text-black">
-          Hasil Defuzzifikasi
-        </h1>
+      <div className="h-[75vh] flex flex-col text-black">
+        {/* Controls */}
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="mr-2 text-sm">Show</label>
+              <select
+                value={perPage}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border px-2 py-1 rounded text-sm"
+              >
+                {[10, 20, 30, 50].map((num) => (
+                  <option key={num} value={num}>
+                    {num}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="flex justify-between items-center mb-4 text-black">
-          <div>
-            <label className="mr-2">Tahun</label>
-            <select
-              value={selectedTahun || ""}
-              onChange={(e) => {
-                setSelectedTahun(parseInt(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border p-2 mr-4"
-            >
-              {tahunList.map((tahun) => (
-                <option key={tahun} value={tahun}>
-                  {tahun}
-                </option>
-              ))}
-            </select>
-
-            <label className="mr-2">Show</label>
-            <select
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border p-2"
-            >
-              {[10, 20, 30, 40, 50].map((num) => (
-                <option key={num} value={num}>
-                  {num}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="mr-2 text-sm">Tahun</label>
+              <select
+                value={selectedTahun ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedTahun(val === "" ? null : Number(val));
+                  setCurrentPage(1);
+                }}
+                className="border px-2 py-1 rounded text-sm"
+              >
+                <option value="">Semua Tahun</option>
+                {tahunList.map((tahun) => (
+                  <option key={tahun} value={tahun}>
+                    {tahun}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="flex-grow overflow-auto border border-gray-400">
+        {/* Table */}
+        <div className="flex-grow overflow-auto border rounded shadow-sm">
           {loading ? (
-            <p className="text-black">Loading...</p>
+            <p className="p-4">Loading...</p>
           ) : (
-            <table className="table-auto w-full border-collapse border border-gray-400 text-black">
-              <thead>
-                <tr className="bg-gray-200 text-black">
-                  {[
-                    "No",
-                    "Tahun",
-                    "Kecamatan",
-                    "Kepadatan Penduduk",
-                    "Taman & Drainase",
-                    "Sejarah Banjir",
-                    "Curah Hujan",
-                    "Centroid",
-                    "Kategori",
-                    "Cluster",
-                  ].map((header, index) => (
-                    <th key={index} className="border px-4 py-2 text-black">
-                      {header}
-                    </th>
-                  ))}
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#0f2a44] text-white">
+                <tr>
+                  <th rowSpan={2} className="border px-3 py-2">
+                    No
+                  </th>
+                  <th rowSpan={2} className="border px-3 py-2">
+                    Tahun
+                  </th>
+                  <th rowSpan={2} className="border px-3 py-2">
+                    Kecamatan
+                  </th>
+                  <th colSpan={2} className="border px-3 py-2">
+                    Fuzzy Mamdani
+                  </th>
+                  <th colSpan={2} className="border px-3 py-2">
+                    Fuzzy Sugeno
+                  </th>
+                  <th colSpan={2} className="border px-3 py-2">
+                    Fuzzy Tsukamoto
+                  </th>
+                </tr>
+                <tr className="bg-[#07263B]">
+                  <th className="border px-3 py-2">Nilai Crisp</th>
+                  <th className="border px-3 py-2">Label</th>
+                  <th className="border px-3 py-2">Nilai Crisp</th>
+                  <th className="border px-3 py-2">Label</th>
+                  <th className="border px-3 py-2">Nilai Crisp</th>
+                  <th className="border px-3 py-2">Label</th>
                 </tr>
               </thead>
+
               <tbody>
-                {displayedData.length > 0 ? (
-                  displayedData.map((row, index) => (
-                    <tr
-                      key={row.id_data}
-                      className="hover:bg-gray-100 text-black"
-                    >
-                      <td className="border px-4 py-2">
+                {data.length > 0 ? (
+                  data.map((row, index) => (
+                    <tr key={row.id_data} className="bg-white">
+                      <td className="border px-3 py-2 text-center">
                         {(currentPage - 1) * perPage + index + 1}
                       </td>
-                      <td className="border px-4 py-2">{row.tahun}</td>
-                      <td className="border px-4 py-2">{row.kecamatan}</td>
-                      <td className="border px-4 py-2">
-                        {row.kepadatan_penduduk}
+                      <td className="border px-3 py-2 text-center">
+                        {row.tahun}
                       </td>
-                      <td className="border px-4 py-2">{row.taman_drainase}</td>
-                      <td className="border px-4 py-2">{row.history_banjir}</td>
-                      <td className="border px-4 py-2">{row.curah_hujan}</td>
-                      <td className="border px-4 py-2">{row.centroid}</td>
-                      <td className="border px-4 py-2">{row.kategori}</td>
-                      <td className="border px-4 py-2">{row.cluster}</td>
+                      <td className="border px-3 py-2">{row.kecamatan}</td>
+
+                      <td className="border px-3 py-2 text-center">
+                        {formatAngka(row.mamdani.crisp_value)}
+                      </td>
+                      <td
+                        className={`border px-3 py-2 text-center font-semibold ${labelBg(row.mamdani.kategori)}`}
+                      >
+                        {row.mamdani.kategori}
+                      </td>
+
+                      <td className="border px-3 py-2 text-center">
+                        {formatAngka(row.sugeno.crisp_value)}
+                      </td>
+                      <td
+                        className={`border px-3 py-2 text-center font-semibold ${labelBg(row.sugeno.kategori)}`}
+                      >
+                        {row.sugeno.kategori}
+                      </td>
+
+                      <td className="border px-3 py-2 text-center">
+                        {formatAngka(row.tsukamoto.crisp_value)}
+                      </td>
+                      <td
+                        className={`border px-3 py-2 text-center font-semibold ${labelBg(row.tsukamoto.kategori)}`}
+                      >
+                        {row.tsukamoto.kategori}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={10} className="text-center py-4">
-                      No data available for the selected year.
+                    <td colSpan={9} className="text-center py-4 bg-white">
+                      No data available
                     </td>
                   </tr>
                 )}
@@ -168,16 +243,17 @@ export default function DefuzzifikasiPage() {
           )}
         </div>
 
-        <div className="flex justify-between items-center mt-4 text-black">
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-4 text-sm">
           <span>
             Showing {(currentPage - 1) * perPage + 1} to{" "}
             {Math.min(currentPage * perPage, totalData)} of {totalData} entries
           </span>
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(currentPage - 1)}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2 disabled:opacity-50"
+              className="px-3 py-1 border rounded disabled:opacity-50"
             >
               Previous
             </button>
@@ -187,7 +263,7 @@ export default function DefuzzifikasiPage() {
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(currentPage + 1)}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded ml-2 disabled:opacity-50"
+              className="px-3 py-1 border rounded disabled:opacity-50"
             >
               Next
             </button>

@@ -1,14 +1,14 @@
 import { useRouter } from "next/router";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Map,
   Database,
   Activity,
   LogOut,
-  ChevronDown,
-  ChevronUp,
+  Menu,
 } from "lucide-react";
+import Image from "next/image";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -16,141 +16,157 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
-  const [showPetaSubmenu, setShowPetaSubmenu] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [adminEmail, setAdminEmail] = useState("");
+
+  useEffect(() => {
+    const email =
+      localStorage.getItem("adminEmail") || localStorage.getItem("email") || "";
+    setAdminEmail(email);
+  }, []);
 
   const isActive = (path: string) => router.pathname === path;
 
-  const menuItems = [
-    {
-      path: "/admin/dashboard",
-      icon: <LayoutDashboard className="mr-2" size={20} />,
-      label: "Dashboard",
-    },
-  ];
+  const pageTitleMap: Record<string, string> = {
+    "/admin/dashboard": "Dashboard",
+    "/admin/peta": "Peta",
+    "/admin/data": "Data",
+    "/admin/defuzzifikasi": "Defuzzifikasi",
+  };
 
-  const petaSubItems = [
-    {
-      path: "/admin/peta",
-      label: "Peta Kerentanan",
-    },
-    {
-      path: "/admin/damkar",
-      label: "Peta Damkar",
-    },
-  ];
-
-  const dataItems = [
-    {
-      path: "/admin/data",
-      icon: <Database className="mr-2" size={20} />,
-      label: "Data",
-    },
-    {
-      path: "/admin/defuzzifikasi",
-      icon: <Activity className="mr-2" size={20} />,
-      label: "Defuzzifikasi",
-    },
-  ];
-
-  const renderButton = (
-    path: string,
-    icon: ReactNode,
-    label: string,
-    onClick?: () => void
-  ) => (
-    <button
-      onClick={onClick || (() => router.push(path))}
-      className={`flex items-center w-full px-4 py-2 border border-black text-black ${
-        isActive(path) ? "bg-[#57B4BA]" : "bg-white hover:bg-gray-200"
-      } transition rounded-md mt-2`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
+  const pageTitle = pageTitleMap[router.pathname] || "";
 
   return (
-    <div className="flex h-screen bg-[#F7F4E9]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#46969B] text-black flex flex-col h-screen">
-        {/* Header Sidebar */}
-        <div className="bg-black text-white font-bold text-center py-7">
-          KERENTANAN BANJIR
-        </div>
+    <div className="flex h-screen w-screen overflow-hidden bg-white">
+      {/* ================= SIDEBAR ================= */}
+      {sidebarOpen && (
+        <aside className="w-64 bg-[#566773] text-white flex flex-col shrink-0">
+          {/* LOGO */}
+          <div className="bg-[#07263B] h-[70px] px-6 flex items-center gap-3">
+            <Image
+              src="/images/icon.png"
+              alt="FuzzyFlood"
+              width={32}
+              height={70}
+            />
+            <div>
+              <p className="text-sm font-bold leading-tight">FuzzyFlood</p>
+              <p className="text-[6px] text-[#1292C9] whitespace-nowrap">
+                Flood Vulnerability Visualization System
+              </p>
+            </div>
+          </div>
 
-        {/* MENU */}
-        <div className="p-6 flex flex-col flex-grow overflow-auto">
-          <h3 className="font-bold mb-2">MENU</h3>
-          {menuItems.map((item) =>
-            renderButton(item.path, item.icon, item.label)
-          )}
-
-          {/* Peta - dropdown menu */}
-          <div className="mt-2">
+          {/* MENU */}
+          <div className="px-4 py-4 text-xs font-semibold text-gray-200">
+            MENU
+          </div>
+          <div className="px-4 space-y-2">
             <button
-              onClick={() => setShowPetaSubmenu(!showPetaSubmenu)}
-              className="flex items-center w-full px-4 py-2 border border-black text-black bg-white hover:bg-gray-200 transition rounded-md"
+              onClick={() => router.push("/admin/dashboard")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm ${
+                isActive("/admin/dashboard")
+                  ? "bg-[#1292C9]"
+                  : "bg-[#07263B]/60 hover:bg-[#07263B]"
+              }`}
             >
-              <Map className="mr-2" size={20} />
-              Peta
-              {showPetaSubmenu ? (
-                <ChevronUp className="ml-auto" size={18} />
-              ) : (
-                <ChevronDown className="ml-auto" size={18} />
-              )}
+              <LayoutDashboard size={18} />
+              Dashboard
             </button>
-
-            {showPetaSubmenu && (
-              <div className="ml-6 mt-2 space-y-2">
-                {petaSubItems.map((item) => (
-                  <button
-                    key={item.path}
-                    onClick={() => router.push(item.path)}
-                    className={`block w-full text-left px-4 py-2 text-sm rounded-md ${
-                      isActive(item.path)
-                        ? "bg-[#57B4BA] text-white"
-                        : "text-black hover:bg-gray-200"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <button
+              onClick={() => router.push("/admin/peta")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm ${
+                isActive("/admin/peta")
+                  ? "bg-[#1292C9]"
+                  : "bg-[#07263B]/60 hover:bg-[#07263B]"
+              }`}
+            >
+              <Map size={18} />
+              Peta
+            </button>
           </div>
 
-          <h3 className="font-bold mt-4 mb-2">KELOLA DATA</h3>
-          {dataItems.map((item) =>
-            renderButton(item.path, item.icon, item.label)
-          )}
-        </div>
+          {/* KELOLA DATA */}
+          <div className="px-4 py-4 text-xs font-semibold text-gray-200">
+            KELOLA DATA
+          </div>
+          <div className="px-4 space-y-2 flex-grow">
+            <button
+              onClick={() => router.push("/admin/data")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm ${
+                isActive("/admin/data")
+                  ? "bg-[#1292C9]"
+                  : "bg-[#07263B]/60 hover:bg-[#07263B]"
+              }`}
+            >
+              <Database size={18} />
+              Data
+            </button>
+            <button
+              onClick={() => router.push("/admin/defuzzifikasi")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm ${
+                isActive("/admin/defuzzifikasi")
+                  ? "bg-[#1292C9]"
+                  : "bg-[#07263B]/60 hover:bg-[#07263B]"
+              }`}
+            >
+              <Activity size={18} />
+              Defuzzifikasi
+            </button>
+          </div>
 
-        {/* Logout tetap di bawah */}
-        <div className="p-6">
-          <button
-            onClick={() => router.push("/")}
-            className="flex items-center w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-          >
-            <LogOut className="mr-2" size={20} />
-            Logout
+          {/* LOGOUT */}
+          <div className="p-4">
+            <button
+              onClick={() => {
+                localStorage.clear();
+                router.push("/");
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 bg-red-600 rounded-md text-sm hover:bg-red-700"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* ================= MAIN ================= */}
+      <main className="flex-1 flex flex-col bg-white overflow-hidden">
+        {/* TOP AREA */}
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
+          {/* HAMBURGER */}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <Menu size={28} className="text-gray-700" />
           </button>
-        </div>
-      </aside>
 
-      {/* Konten utama */}
-      <div className="flex flex-col flex-grow">
-        {/* Header */}
-        <header className="w-full bg-white text-black px-8 py-4 flex justify-between items-center shadow-md">
-          <div></div>
-          <div className="text-right">
-            <h2 className="font-bold">Selamat Datang Admin!</h2>
-            <p className="text-gray-600">admin2905@gmail.com</p>
+          {/* GREETING */}
+          <div className="text-right leading-tight">
+            <p className="text-black font-semibold">Selamat Datang Admin!</p>
+            <p className="text-black/50 text-sm">{adminEmail}</p>
           </div>
-        </header>
+        </div>
 
-        {/* Konten dinamis dengan scroll */}
-        <main className="flex-1 overflow-auto p-8">{children}</main>
-      </div>
+        {/* PAGE TITLE */}
+        <h1 className="text-xl font-semibold text-black px-6 pt-4 pb-2 flex-shrink-0">
+          {pageTitle}
+        </h1>
+
+        {/* ================= CONTENT WRAPPER (abu-abu) ================= */}
+        <div
+          className="border rounded-md p-6"
+          style={{
+            backgroundColor: "rgba(7,38,59,0.1)",
+            height: "80vh", // Atur tinggi div abu-abu
+            width: "97%", // Atur lebar div abu-abu
+            margin: "0 auto", // Tengah horizontal
+          }}
+        >
+          <div className="h-full overflow-auto">
+            {children} {/* Scrollable di sini */}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
